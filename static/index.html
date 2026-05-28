@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sudoku Mega</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header>
+      <div class="header-inner">
+        <h1>Sudoku <span class="accent">Mega</span></h1>
+        <p class="tagline">Até 4 jogos simultâneos. Uma única lógica.</p>
+      </div>
+    </header>
+
+    <!-- Setup screen -->
+    <section id="setup-screen">
+      <div class="setup-card">
+        <h2>Novo Jogo</h2>
+
+        <div class="setup-field">
+          <label>Número de jogos simultâneos</label>
+          <div class="game-count-selector">
+            <button class="count-btn active" data-count="1">1</button>
+            <button class="count-btn" data-count="2">2</button>
+            <button class="count-btn" data-count="3">3</button>
+            <button class="count-btn" data-count="4">4</button>
+          </div>
+          <div class="game-count-labels">
+            <span data-count="1">UP</span>
+            <span data-count="2">UP + LEFT</span>
+            <span data-count="3">UP + LEFT + DOWN</span>
+            <span data-count="4">UP + LEFT + DOWN + RIGHT</span>
+          </div>
+        </div>
+
+        <div class="setup-field">
+          <label>Dificuldade</label>
+          <div class="difficulty-selector">
+            <button class="diff-btn" data-diff="easy">Fácil</button>
+            <button class="diff-btn active" data-diff="medium">Médio</button>
+            <button class="diff-btn" data-diff="hard">Difícil</button>
+          </div>
+        </div>
+
+        <div class="direction-preview" id="direction-preview">
+          <div class="dir-card active" data-dir="UP">
+            <div class="dir-icon up-icon">↑</div>
+            <div class="dir-name">UP</div>
+            <div class="dir-desc">Leitura padrão</div>
+          </div>
+          <div class="dir-card" data-dir="LEFT">
+            <div class="dir-icon left-icon">←</div>
+            <div class="dir-name">LEFT</div>
+            <div class="dir-desc">Rotação 90° anti-horário</div>
+          </div>
+          <div class="dir-card" data-dir="DOWN">
+            <div class="dir-icon down-icon">↓</div>
+            <div class="dir-name">DOWN</div>
+            <div class="dir-desc">Rotação 180°</div>
+          </div>
+          <div class="dir-card" data-dir="RIGHT">
+            <div class="dir-icon right-icon">→</div>
+            <div class="dir-name">RIGHT</div>
+            <div class="dir-desc">Rotação 90° horário</div>
+          </div>
+        </div>
+
+        <button id="start-btn" class="primary-btn">Iniciar Jogo</button>
+      </div>
+    </section>
+
+    <!-- Game screen -->
+    <section id="game-screen" class="hidden">
+      <div class="game-toolbar">
+        <button id="new-game-btn" class="tool-btn">← Novo Jogo</button>
+        <div class="game-info">
+          <span id="difficulty-badge"></span>
+          <span id="games-badge"></span>
+        </div>
+        <div class="game-actions">
+          <button id="hint-btn" class="tool-btn hint-btn">💡 Dica</button>
+          <button id="erase-btn" class="tool-btn erase-btn">✕ Apagar</button>
+          <button id="solve-btn" class="tool-btn solve-btn">🔓 Resolver</button>
+        </div>
+      </div>
+
+      <div id="boards-container"></div>
+
+      <div id="numpad">
+        <button class="num-btn" data-val="1">1</button>
+        <button class="num-btn" data-val="2">2</button>
+        <button class="num-btn" data-val="3">3</button>
+        <button class="num-btn" data-val="4">4</button>
+        <button class="num-btn" data-val="5">5</button>
+        <button class="num-btn" data-val="6">6</button>
+        <button class="num-btn" data-val="7">7</button>
+        <button class="num-btn" data-val="8">8</button>
+        <button class="num-btn" data-val="9">9</button>
+      </div>
+
+      <div id="status-bar"></div>
+    </section>
+
+    <!-- Victory overlay -->
+    <div id="victory-overlay" class="hidden">
+      <div class="victory-card">
+        <div class="trophy">🏆</div>
+        <h2>Parabéns!</h2>
+        <p>Você completou o Sudoku Mega!</p>
+        <button id="play-again-btn" class="primary-btn">Jogar Novamente</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/game.js"></script>
+</body>
+</html>
