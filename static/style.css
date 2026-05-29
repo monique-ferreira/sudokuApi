@@ -235,13 +235,6 @@ header {
 .board-wrapper {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-}
-.board-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.25rem;
 }
 .dir-badge {
   padding: 0.25rem 0.6rem;
@@ -291,11 +284,11 @@ header {
   position: relative;
   aspect-ratio: 1;
 }
-/* Thicker box borders */
-.cell[data-col="2"], .cell[data-col="5"] { border-right: 2px solid var(--border); }
-.cell[data-row="2"], .cell[data-row="5"] { border-bottom: 2px solid var(--border); }
-.cell:last-child, .cell[data-col="8"]    { border-right: none; }
-.cell[data-row="8"]                       { border-bottom: none; }
+/* 3×3 box borders */
+.cell[data-col="2"], .cell[data-col="5"] { border-right: 2px solid rgba(255,255,255,0.18); }
+.cell[data-row="2"], .cell[data-row="5"] { border-bottom: 2px solid rgba(255,255,255,0.18); }
+.cell[data-col="8"]                      { border-right: none; }
+.cell[data-row="8"]                      { border-bottom: none; }
 
 .cell.locked       { background: var(--cell-locked); color: var(--text-muted); cursor: default; }
 .cell.player       { color: var(--accent-light); }

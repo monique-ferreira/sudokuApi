@@ -12,7 +12,7 @@
 
 let gameState = null;    // current API state
 let selection = null;    // { gameIndex, row, col }
-let numGames  = 1;
+let numGames  = 2;
 let difficulty = "medium";
 
 // ─── DOM refs ────────────────────────────────────────────────────────────────
@@ -57,8 +57,6 @@ function updateCountLabel() {
     span.classList.toggle("visible", parseInt(span.dataset.count, 10) === numGames);
   });
 }
-
-updateCountLabel();
 
 // ─── Start / navigation ──────────────────────────────────────────────────────
 
@@ -232,19 +230,6 @@ function renderBoards() {
     const wrapper = document.createElement("div");
     wrapper.className = "board-wrapper";
 
-    // Header
-    const header = document.createElement("div");
-    header.className = "board-header";
-    const badge = document.createElement("span");
-    badge.className = `dir-badge dir-badge-${game.direction}`;
-    badge.textContent = game.direction;
-    const title = document.createElement("span");
-    title.className = "board-title";
-    const dirTitles = { UP: "Padrão", LEFT: "Anti-horário", DOWN: "Invertido", RIGHT: "Horário" };
-    title.textContent = dirTitles[game.direction] || "";
-    header.appendChild(badge);
-    header.appendChild(title);
-    wrapper.appendChild(header);
 
     // Grid
     const grid = document.createElement("div");
