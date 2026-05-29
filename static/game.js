@@ -2,13 +2,19 @@
 
 // ─── State ───────────────────────────────────────────────────────────────────
 let gameState  = null;
-let selection  = null;   // { gameIndex, row, col }
+let selection  = null;   // { boardPos, row, col }
 let numGames   = 2;
 let difficulty = "medium";
+let quantumMode = false;
 
 // Timer
-let timerInterval = null;
+let timerInterval  = null;
 let elapsedSeconds = 0;
+
+// Drift
+const DRIFT_INTERVAL = 90; // seconds
+let driftSecondsLeft = DRIFT_INTERVAL;
+let driftInterval    = null;
 
 // ─── DOM refs ────────────────────────────────────────────────────────────────
 const setupScreen     = document.getElementById("setup-screen");
@@ -16,8 +22,11 @@ const gameScreen      = document.getElementById("game-screen");
 const boardsContainer = document.getElementById("boards-container");
 const victoryOverlay  = document.getElementById("victory-overlay");
 const gameoverOverlay = document.getElementById("gameover-overlay");
+const driftOverlay    = document.getElementById("drift-overlay");
+const paradoxBanner   = document.getElementById("paradox-banner");
 const diffBadge       = document.getElementById("difficulty-badge");
 const timerDisplay    = document.getElementById("timer-display");
+const driftBadge      = document.getElementById("drift-badge");
 const hintsLeft       = document.getElementById("hints-left");
 const mistakePips     = document.getElementById("mistake-pips");
 
@@ -49,7 +58,7 @@ function updateCountLabel() {
 document.getElementById("start-btn").addEventListener("click", startGame);
 
 document.getElementById("new-game-btn").addEventListener("click", () => {
-  stopTimer();
+  stopTimer(); stopDrift();
   gameState = null; selection = null;
   setupScreen.classList.remove("hidden");
   gameScreen.classList.add("hidden");
@@ -79,19 +88,25 @@ document.getElementById("reveal-btn").addEventListener("click", async () => {
   }
 });
 
+document.getElementById("quantum-btn").addEventListener("click", () => {
+  quantumMode = !quantumMode;
+  document.getElementById("quantum-btn").classList.toggle("active", quantumMode);
+  renderBoards();
+});
+
 // ─── Toolbar ─────────────────────────────────────────────────────────────────
 document.getElementById("hint-btn").addEventListener("click", async () => {
   if (!gameState || gameState.game_over) return;
   if (gameState.hints_used >= gameState.max_hints) return;
-  const gameIndex = selection ? selection.gameIndex : 0;
-  const data = await apiCall(`/api/games/${gameState.id}/hint?game_index=${gameIndex}`);
+  const boardPos = selection ? selection.boardPos : 0;
+  const data = await apiCall(`/api/games/${gameState.id}/hint?game_index=${boardPos}`);
   if (!data) return;
   const result = await apiCall(`/api/games/${gameState.id}/move`, "POST", {
-    game_index: 0, row: data.canonical_row, col: data.canonical_col, value: data.value,
+    game_index: boardPos, row: data.row, col: data.col, value: data.value,
   });
   if (result) {
     gameState = result;
-    flashHint(data.canonical_row, data.canonical_col);
+    flashHint(boardPos, data.row, data.col);
     updateHUD();
     renderBoards();
     checkEndState();
@@ -112,13 +127,13 @@ document.addEventListener("keydown", e => {
   if (key >= "1" && key <= "9") { placeValue(parseInt(key, 10)); return; }
   if (key === "Backspace" || key === "Delete" || key === "0") { eraseSelected(); return; }
   if (!selection) return;
-  const { gameIndex, row, col } = selection;
+  const { boardPos, row, col } = selection;
   let nr = row, nc = col;
   if (key === "ArrowUp")    nr = Math.max(0, row - 1);
   if (key === "ArrowDown")  nr = Math.min(8, row + 1);
   if (key === "ArrowLeft")  nc = Math.max(0, col - 1);
   if (key === "ArrowRight") nc = Math.min(8, col + 1);
-  if (nr !== row || nc !== col) { selection = { gameIndex, row: nr, col: nc }; renderBoards(); }
+  if (nr !== row || nc !== col) { selection = { boardPos, row: nr, col: nc }; renderBoards(); }
 });
 
 // ─── Core actions ─────────────────────────────────────────────────────────────
@@ -130,6 +145,8 @@ async function startGame() {
   gameState = result;
   selection = null;
   elapsedSeconds = 0;
+  quantumMode = false;
+  document.getElementById("quantum-btn").classList.remove("active");
 
   setupScreen.classList.add("hidden");
   gameScreen.classList.remove("hidden");
@@ -142,30 +159,34 @@ async function startGame() {
   renderBoards();
   updateHUD();
   startTimer();
+  startDrift();
 }
 
 async function placeValue(value) {
   if (!selection || !gameState || gameState.game_over) return;
-  const { gameIndex, row, col } = selection;
+  const { boardPos, row, col } = selection;
   const prev = gameState;
   const result = await apiCall(`/api/games/${gameState.id}/move`, "POST", {
-    game_index: gameIndex, row, col, value,
+    game_index: boardPos, row, col, value,
   });
   if (result) {
     const wasMistake = result.mistakes > prev.mistakes;
+    const wasParadox = result.paradox;
     gameState = result;
     updateHUD();
     renderBoards();
-    if (wasMistake) animateMistake(gameIndex, row, col);
+    if (wasMistake) animateMistake(boardPos, row, col);
+    if (wasParadox) showParadox();
+    else paradoxBanner.classList.add("hidden");
     checkEndState();
   }
 }
 
 async function eraseSelected() {
   if (!selection || !gameState || gameState.game_over) return;
-  const { gameIndex, row, col } = selection;
+  const { boardPos, row, col } = selection;
   const result = await apiCall(`/api/games/${gameState.id}/move`, "POST", {
-    game_index: gameIndex, row, col, value: null,
+    game_index: boardPos, row, col, value: null,
   });
   if (result) { gameState = result; renderBoards(); }
 }
@@ -173,12 +194,12 @@ async function eraseSelected() {
 function checkEndState() {
   if (!gameState) return;
   if (gameState.game_over) {
-    stopTimer();
+    stopTimer(); stopDrift();
     setTimeout(() => gameoverOverlay.classList.remove("hidden"), 300);
     return;
   }
   if (gameState.completed) {
-    stopTimer();
+    stopTimer(); stopDrift();
     document.getElementById("v-time").textContent = formatTime(elapsedSeconds);
     document.getElementById("v-mistakes").textContent = `${gameState.mistakes}/3`;
     document.getElementById("v-hints").textContent = `${gameState.hints_used}`;
@@ -186,10 +207,18 @@ function checkEndState() {
   }
 }
 
+// ─── Paradox ──────────────────────────────────────────────────────────────────
+function showParadox() {
+  paradoxBanner.classList.remove("hidden");
+  // Force re-animation
+  paradoxBanner.style.animation = "none";
+  paradoxBanner.offsetHeight;
+  paradoxBanner.style.animation = "";
+}
+
 // ─── HUD ─────────────────────────────────────────────────────────────────────
 function updateHUD() {
   if (!gameState) return;
-  // Mistake pips
   mistakePips.innerHTML = "";
   for (let i = 0; i < gameState.max_mistakes; i++) {
     const pip = document.createElement("span");
@@ -197,7 +226,6 @@ function updateHUD() {
     if (i === gameState.mistakes - 1) pip.classList.add("last");
     mistakePips.appendChild(pip);
   }
-  // Hints remaining
   const remaining = gameState.max_hints - gameState.hints_used;
   hintsLeft.textContent = remaining;
   hintsLeft.className = "hint-count" + (remaining === 0 ? " zero" : "");
@@ -223,6 +251,50 @@ function formatTime(s) {
   return `${m}:${sec}`;
 }
 
+// ─── Drift ───────────────────────────────────────────────────────────────────
+function startDrift() {
+  stopDrift();
+  driftSecondsLeft = DRIFT_INTERVAL;
+  updateDriftBadge();
+  driftInterval = setInterval(async () => {
+    driftSecondsLeft--;
+    updateDriftBadge();
+    if (driftSecondsLeft <= 0) {
+      await triggerDrift();
+      driftSecondsLeft = DRIFT_INTERVAL;
+    }
+  }, 1000);
+}
+
+function stopDrift() {
+  if (driftInterval) { clearInterval(driftInterval); driftInterval = null; }
+}
+
+function updateDriftBadge() {
+  const m = Math.floor(driftSecondsLeft / 60).toString().padStart(1, "0");
+  const s = (driftSecondsLeft % 60).toString().padStart(2, "0");
+  driftBadge.textContent = `⟳ ${m}:${s}`;
+  driftBadge.classList.toggle("imminent", driftSecondsLeft <= 10);
+}
+
+async function triggerDrift() {
+  if (!gameState || gameState.game_over || gameState.completed) return;
+
+  // Show overlay briefly
+  driftOverlay.classList.remove("hidden");
+
+  // Animate boards out
+  document.querySelectorAll(".board-wrapper").forEach(el => el.classList.add("drifting"));
+
+  const result = await apiCall(`/api/games/${gameState.id}/drift`, "POST");
+  if (result) gameState = result;
+
+  setTimeout(() => {
+    driftOverlay.classList.add("hidden");
+    renderBoards();
+  }, 600);
+}
+
 // ─── Rendering ───────────────────────────────────────────────────────────────
 const QUAD_ARRANGEMENT = {
   UP:    [[0,1,2],[3,4,5],[6,7,8]],
@@ -245,18 +317,8 @@ function getCanonical(vr, vc, dir) {
   return { cr: Math.floor(qi/3)*3 + Math.floor(ci/3), cc: (qi%3)*3 + (ci%3) };
 }
 
-function getSelectedCanonical() {
-  if (!selection) return null;
-  const el = document.querySelector(
-    `.sudoku-grid[data-gi="${selection.gameIndex}"] .cell[data-r="${selection.row}"][data-c="${selection.col}"]`
-  );
-  if (!el) return null;
-  return { cr: +el.dataset.cr, cc: +el.dataset.cc };
-}
-
 function renderBoards() {
   if (!gameState) return;
-  const selCan = getSelectedCanonical();
   boardsContainer.innerHTML = "";
 
   gameState.games.forEach(game => {
@@ -267,30 +329,51 @@ function renderBoards() {
     grid.className = "sudoku-grid";
     grid.dataset.gi = game.game_index;
 
+    // Build portal set from server data (visual positions for this board)
+    const portalSet = new Set(
+      (game.portal_positions || []).map(p => `${p.row},${p.col}`)
+    );
+
     for (let r = 0; r < 9; r++) {
       for (let c = 0; c < 9; c++) {
-        const { cr, cc } = getCanonical(r, c, game.direction);
         const cell = document.createElement("div");
         cell.className = "cell";
         cell.dataset.r = r; cell.dataset.c = c;
-        cell.dataset.cr = cr; cell.dataset.cc = cc;
 
         const locked = game.locked[r][c];
         const value  = game.grid[r][c];
+        const isPortal = portalSet.has(`${r},${c}`);
 
         const isSelected = selection &&
-          selection.gameIndex === game.game_index &&
+          selection.boardPos === game.game_index &&
           selection.row === r && selection.col === c;
 
         if (locked) cell.classList.add("locked");
         else        cell.classList.add("player");
-
         if (isSelected) cell.classList.add("selected");
+        if (isPortal)   cell.classList.add("portal");
 
-        if (value !== null) cell.textContent = value;
+        if (value !== null) {
+          cell.textContent = value;
+        } else if (quantumMode && !locked) {
+          const cands = game.candidates?.[r]?.[c] ?? [];
+          if (cands.length > 0) {
+            cell.classList.add("quantum");
+            cell.textContent = "";
+            const cgrid = document.createElement("div");
+            cgrid.className = "candidates-grid";
+            for (let n = 1; n <= 9; n++) {
+              const span = document.createElement("span");
+              span.className = "cand" + (cands.includes(n) ? " present" : "");
+              span.textContent = cands.includes(n) ? n : "";
+              cgrid.appendChild(span);
+            }
+            cell.appendChild(cgrid);
+          }
+        }
 
         cell.addEventListener("click", () => {
-          selection = { gameIndex: game.game_index, row: r, col: c };
+          selection = { boardPos: game.game_index, row: r, col: c };
           renderBoards();
         });
 
@@ -302,20 +385,22 @@ function renderBoards() {
   });
 }
 
-function animateMistake(gameIndex, row, col) {
+function animateMistake(boardPos, row, col) {
   const el = document.querySelector(
-    `.sudoku-grid[data-gi="${gameIndex}"] .cell[data-r="${row}"][data-c="${col}"]`
+    `.sudoku-grid[data-gi="${boardPos}"] .cell[data-r="${row}"][data-c="${col}"]`
   );
   if (!el) return;
   el.classList.add("shake");
   el.addEventListener("animationend", () => el.classList.remove("shake"), { once: true });
 }
 
-function flashHint(cr, cc) {
-  document.querySelectorAll(`.cell[data-cr="${cr}"][data-cc="${cc}"]`).forEach(el => {
-    el.classList.add("hint-flash");
-    el.addEventListener("animationend", () => el.classList.remove("hint-flash"), { once: true });
-  });
+function flashHint(boardPos, row, col) {
+  const el = document.querySelector(
+    `.sudoku-grid[data-gi="${boardPos}"] .cell[data-r="${row}"][data-c="${col}"]`
+  );
+  if (!el) return;
+  el.classList.add("hint-flash");
+  el.addEventListener("animationend", () => el.classList.remove("hint-flash"), { once: true });
 }
 
 // ─── API ─────────────────────────────────────────────────────────────────────
@@ -335,7 +420,7 @@ let loadingEl = null;
 function showLoading() {
   loadingEl = document.createElement("div");
   loadingEl.className = "loading-overlay";
-  loadingEl.innerHTML = `<div class="spinner"></div><p>Gerando puzzle...</p>`;
+  loadingEl.innerHTML = `<div class="spinner"></div><p>Gerando puzzle interdimensional...</p>`;
   document.body.appendChild(loadingEl);
 }
 function hideLoading() {

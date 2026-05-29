@@ -63,3 +63,12 @@ def solve_game(game_id: str):
         raise HTTPException(status_code=404, detail="Game not found")
     session.reveal_solution()
     return session.to_dict()
+
+
+@router.post("/games/{game_id}/drift")
+def apply_drift(game_id: str):
+    session = get_session(game_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Game not found")
+    session.apply_drift()
+    return session.to_dict()

@@ -11,7 +11,7 @@
     <header>
       <div class="header-inner">
         <h1>Sudoku <span class="accent">Mega</span></h1>
-        <p class="tagline">Mais difícil que um Samurai. Sem piedade.</p>
+        <p class="tagline">Interdimensional. Sem piedade.</p>
       </div>
     </header>
 
@@ -21,16 +21,16 @@
         <h2>Novo Jogo</h2>
 
         <div class="setup-field">
-          <label>Perspectivas simultâneas</label>
+          <label>Dimensões simultâneas</label>
           <div class="game-count-selector">
             <button class="count-btn active" data-count="2">2</button>
             <button class="count-btn" data-count="3">3</button>
             <button class="count-btn" data-count="4">4</button>
           </div>
           <div class="game-count-labels">
-            <span data-count="2" class="visible">2 perspectivas</span>
-            <span data-count="3">3 perspectivas</span>
-            <span data-count="4">4 perspectivas</span>
+            <span data-count="2" class="visible">2 dimensões — cada uma com um grid independente</span>
+            <span data-count="3">3 dimensões — portais conectam os três grids</span>
+            <span data-count="4">4 dimensões — caos total</span>
           </div>
         </div>
 
@@ -47,10 +47,11 @@
           <p class="rules-title">Regras do Sudoku Mega</p>
           <ul>
             <li>Cada linha, coluna e quadrante 3×3 deve conter os números 1–9</li>
-            <li>As duas diagonais principais também devem conter 1–9 (Sudoku X)</li>
-            <li>Todas as perspectivas mostram o mesmo grid — em direções diferentes</li>
+            <li>As <strong>duas diagonais principais</strong> também devem conter 1–9 (Sudoku X)</li>
+            <li>Cada dimensão é um grid <strong>independente</strong> visto de uma direção diferente</li>
+            <li>As <strong>células-portal</strong> (diagonal principal) são compartilhadas entre todos os grids — deduzí-las exige cruzar dimensões</li>
+            <li>A cada 90 segundos as dimensões <strong>derivam</strong> — os grids trocam de posição</li>
             <li>Você tem <strong>3 erros</strong> antes do game over</li>
-            <li>Não há feedback de erro — descubra você mesmo</li>
           </ul>
         </div>
 
@@ -65,17 +66,25 @@
         <div class="game-info">
           <span id="difficulty-badge"></span>
           <span id="timer-display" class="badge badge-timer">00:00</span>
+          <span id="drift-badge" class="badge badge-drift" title="Próxima deriva dimensional">⟳ 1:30</span>
         </div>
         <div class="game-actions">
           <span id="mistakes-display" class="mistakes-counter">
             <span class="mistakes-label">Erros</span>
             <span id="mistake-pips" class="mistake-pips"></span>
           </span>
+          <button id="quantum-btn" class="tool-btn quantum-btn" title="Mostrar/ocultar candidatos">
+            ψ Quantum
+          </button>
           <button id="hint-btn" class="tool-btn hint-btn">
             💡 Dica <span id="hints-left" class="hint-count">3</span>
           </button>
           <button id="erase-btn" class="tool-btn erase-btn">✕</button>
         </div>
+      </div>
+
+      <div id="paradox-banner" class="paradox-banner hidden">
+        ⚠ PARADOXO DIMENSIONAL — os portais colidiram entre dimensões
       </div>
 
       <div id="boards-container"></div>
@@ -98,7 +107,7 @@
       <div class="end-card victory-card">
         <div class="end-icon">🏆</div>
         <h2>Incrível!</h2>
-        <p>Sudoku Mega concluído</p>
+        <p>Sudoku Mega Interdimensional concluído</p>
         <div class="end-stats">
           <div class="stat"><span id="v-time">—</span><small>tempo</small></div>
           <div class="stat"><span id="v-mistakes">—</span><small>erros</small></div>
@@ -118,6 +127,14 @@
           <button id="reveal-btn" class="secondary-btn">Ver Solução</button>
           <button id="retry-btn" class="primary-btn">Tentar Novamente</button>
         </div>
+      </div>
+    </div>
+
+    <!-- Drift overlay -->
+    <div id="drift-overlay" class="hidden">
+      <div class="drift-card">
+        <div class="drift-icon">🌀</div>
+        <p>DERIVA DIMENSIONAL</p>
       </div>
     </div>
   </div>
