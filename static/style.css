@@ -310,9 +310,9 @@ header {
   80%     { transform: translateX(-2px); }
 }
 
-/* Quantum (candidates) mode */
+/* Pencil-mark candidates */
 .cell.quantum {
-  padding: 2px;
+  padding: 1px;
   align-items: stretch;
   justify-content: stretch;
 }
@@ -325,12 +325,20 @@ header {
 }
 .cand {
   display: flex; align-items: center; justify-content: center;
-  font-size: clamp(0.28rem, 0.6vw, 0.5rem);
-  font-weight: 500;
-  color: var(--text-muted);
+  font-size: clamp(0.22rem, 0.55vw, 0.42rem);
+  font-weight: 700;
   line-height: 1;
+  visibility: hidden;
 }
-.cand.present { color: var(--accent-light); }
+.cand.present { visibility: visible; color: #94a3b8; }
+
+/* Box complete flash */
+.cell.box-complete { animation: boxFlash 0.55s ease-out; }
+@keyframes boxFlash {
+  0%   { background: rgba(124,58,237,0.55); }
+  60%  { background: rgba(124,58,237,0.15); }
+  100% { background: inherit; }
+}
 
 /* Numpad */
 #numpad {

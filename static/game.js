@@ -166,6 +166,7 @@ async function placeValue(value) {
   if (!selection || !gameState || gameState.game_over) return;
   const { boardPos, row, col } = selection;
   const prev = gameState;
+  const prevBoxes = completedBoxes(prev.games);
   const result = await apiCall(`/api/games/${gameState.id}/move`, "POST", {
     game_index: boardPos, row, col, value,
   });
@@ -178,6 +179,7 @@ async function placeValue(value) {
     if (wasMistake) animateMistake(boardPos, row, col);
     if (wasParadox) showParadox();
     else paradoxBanner.classList.add("hidden");
+    animateNewlyCompletedBoxes(prevBoxes, completedBoxes(result.games));
     checkEndState();
   }
 }
@@ -382,6 +384,46 @@ function renderBoards() {
     }
     wrapper.appendChild(grid);
     boardsContainer.appendChild(wrapper);
+  });
+}
+
+// Returns a Set of "gi-bqr-bqc" strings for every fully-filled 3×3 box
+function completedBoxes(games) {
+  const done = new Set();
+  if (!games) return done;
+  games.forEach(game => {
+    for (let bqr = 0; bqr < 3; bqr++) {
+      for (let bqc = 0; bqc < 3; bqc++) {
+        let full = true;
+        for (let dr = 0; dr < 3 && full; dr++) {
+          for (let dc = 0; dc < 3 && full; dc++) {
+            if (game.grid[bqr*3+dr][bqc*3+dc] === null) full = false;
+          }
+        }
+        if (full) done.add(`${game.game_index}-${bqr}-${bqc}`);
+      }
+    }
+  });
+  return done;
+}
+
+function animateNewlyCompletedBoxes(before, after) {
+  after.forEach(key => {
+    if (before.has(key)) return;
+    const [gi, bqr, bqc] = key.split("-").map(Number);
+    for (let dr = 0; dr < 3; dr++) {
+      for (let dc = 0; dc < 3; dc++) {
+        const r = bqr*3+dr, c = bqc*3+dc;
+        const el = document.querySelector(
+          `.sudoku-grid[data-gi="${gi}"] .cell[data-r="${r}"][data-c="${c}"]`
+        );
+        if (!el) continue;
+        el.classList.remove("box-complete");
+        el.offsetHeight; // reflow
+        el.classList.add("box-complete");
+        el.addEventListener("animationend", () => el.classList.remove("box-complete"), { once: true });
+      }
+    }
   });
 }
 
