@@ -298,25 +298,13 @@ async function triggerDrift() {
 }
 
 // ─── Rendering ───────────────────────────────────────────────────────────────
-const QUAD_ARRANGEMENT = {
-  UP:    [[0,1,2],[3,4,5],[6,7,8]],
-  LEFT:  [[5,8,2],[7,1,4],[0,3,6]],
-  DOWN:  [[4,7,3],[8,0,6],[2,5,1]],
-  RIGHT: [[3,4,8],[2,7,0],[1,6,5]],
-};
-const CELL_ARRANGEMENT = {
-  UP:    [[0,1,2],[3,4,5],[6,7,8]],
-  LEFT:  [[2,5,8],[1,4,7],[0,3,6]],
-  DOWN:  [[8,7,6],[5,4,3],[2,1,0]],
-  RIGHT: [[6,3,0],[7,4,1],[8,5,2]],
-};
-
+// Mirrors the server-side rotation math in directions.py
 function getCanonical(vr, vc, dir) {
-  const vqr = Math.floor(vr/3), vqc = Math.floor(vc/3);
-  const vir = vr%3, vic = vc%3;
-  const qi = QUAD_ARRANGEMENT[dir][vqr][vqc];
-  const ci = CELL_ARRANGEMENT[dir][vir][vic];
-  return { cr: Math.floor(qi/3)*3 + Math.floor(ci/3), cc: (qi%3)*3 + (ci%3) };
+  if (dir === "UP")    return { cr: vr,     cc: vc     };
+  if (dir === "RIGHT") return { cr: 8 - vc, cc: vr     };
+  if (dir === "DOWN")  return { cr: 8 - vr, cc: 8 - vc };
+  if (dir === "LEFT")  return { cr: vc,     cc: 8 - vr };
+  return { cr: vr, cc: vc };
 }
 
 function renderBoards() {
