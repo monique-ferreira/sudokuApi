@@ -8,13 +8,8 @@ from app.game.state import create_session, get_session
 router = APIRouter(prefix="/api")
 
 
-# ------------------------------------------------------------------
-# Request / response models
-# ------------------------------------------------------------------
-
-
 class CreateGameRequest(BaseModel):
-    num_games: int = Field(default=1, ge=1, le=4)
+    num_games: int = Field(default=2, ge=2, le=4)
     difficulty: str = Field(default="medium", pattern="^(easy|medium|hard)$")
 
 
@@ -23,11 +18,6 @@ class MoveRequest(BaseModel):
     row: int = Field(ge=0, le=8)
     col: int = Field(ge=0, le=8)
     value: int | None = Field(default=None, ge=1, le=9)
-
-
-# ------------------------------------------------------------------
-# Endpoints
-# ------------------------------------------------------------------
 
 
 @router.post("/games")
@@ -62,7 +52,7 @@ def get_hint(game_id: str, game_index: int = 0):
         raise HTTPException(status_code=404, detail="Game not found")
     hint = session.get_hint(game_index)
     if hint is None:
-        raise HTTPException(status_code=404, detail="No hint available")
+        raise HTTPException(status_code=404, detail="No hints remaining")
     return hint
 
 
@@ -73,28 +63,3 @@ def solve_game(game_id: str):
         raise HTTPException(status_code=404, detail="Game not found")
     session.reveal_solution()
     return session.to_dict()
-
-
-@router.get("/games/{game_id}/validate")
-def validate_game(game_id: str):
-    from app.sudoku.solver import validate_grid
-    from app.sudoku.directions import canonical_to_visual
-
-    session = get_session(game_id)
-    if session is None:
-        raise HTTPException(status_code=404, detail="Game not found")
-
-    errors_can = validate_grid(session.canonical)
-    errors_by_game = []
-    for i, direction in enumerate(session.directions):
-        game_errors = []
-        for cr, cc in errors_can:
-            vr, vc = canonical_to_visual(cr, cc, direction)
-            game_errors.append({"row": vr, "col": vc})
-        errors_by_game.append({"game_index": i, "direction": direction, "errors": game_errors})
-
-    return {
-        "valid": len(errors_can) == 0,
-        "completed": session.is_complete(),
-        "games": errors_by_game,
-    }

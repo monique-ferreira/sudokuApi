@@ -8,11 +8,10 @@
 </head>
 <body>
   <div id="app">
-    <!-- Header -->
     <header>
       <div class="header-inner">
         <h1>Sudoku <span class="accent">Mega</span></h1>
-        <p class="tagline">Até 4 jogos simultâneos. Uma única lógica.</p>
+        <p class="tagline">Mais difícil que um Samurai. Sem piedade.</p>
       </div>
     </header>
 
@@ -22,7 +21,7 @@
         <h2>Novo Jogo</h2>
 
         <div class="setup-field">
-          <label>Número de jogos simultâneos</label>
+          <label>Perspectivas simultâneas</label>
           <div class="game-count-selector">
             <button class="count-btn active" data-count="2">2</button>
             <button class="count-btn" data-count="3">3</button>
@@ -40,31 +39,19 @@
           <div class="difficulty-selector">
             <button class="diff-btn" data-diff="easy">Fácil</button>
             <button class="diff-btn active" data-diff="medium">Médio</button>
-            <button class="diff-btn" data-diff="hard">Difícil</button>
+            <button class="diff-btn" data-diff="hard">Brutal</button>
           </div>
         </div>
 
-        <div class="direction-preview" id="direction-preview">
-          <div class="dir-card active" data-dir="UP">
-            <div class="dir-icon up-icon">↑</div>
-            <div class="dir-name">UP</div>
-            <div class="dir-desc">Leitura padrão</div>
-          </div>
-          <div class="dir-card" data-dir="LEFT">
-            <div class="dir-icon left-icon">←</div>
-            <div class="dir-name">LEFT</div>
-            <div class="dir-desc">Rotação 90° anti-horário</div>
-          </div>
-          <div class="dir-card" data-dir="DOWN">
-            <div class="dir-icon down-icon">↓</div>
-            <div class="dir-name">DOWN</div>
-            <div class="dir-desc">Rotação 180°</div>
-          </div>
-          <div class="dir-card" data-dir="RIGHT">
-            <div class="dir-icon right-icon">→</div>
-            <div class="dir-name">RIGHT</div>
-            <div class="dir-desc">Rotação 90° horário</div>
-          </div>
+        <div class="rules-box">
+          <p class="rules-title">Regras do Sudoku Mega</p>
+          <ul>
+            <li>Cada linha, coluna e quadrante 3×3 deve conter os números 1–9</li>
+            <li>As duas diagonais principais também devem conter 1–9 (Sudoku X)</li>
+            <li>Todas as perspectivas mostram o mesmo grid — em direções diferentes</li>
+            <li>Você tem <strong>3 erros</strong> antes do game over</li>
+            <li>Não há feedback de erro — descubra você mesmo</li>
+          </ul>
         </div>
 
         <button id="start-btn" class="primary-btn">Iniciar Jogo</button>
@@ -77,12 +64,17 @@
         <button id="new-game-btn" class="tool-btn">← Novo Jogo</button>
         <div class="game-info">
           <span id="difficulty-badge"></span>
-          <span id="games-badge"></span>
+          <span id="timer-display" class="badge badge-timer">00:00</span>
         </div>
         <div class="game-actions">
-          <button id="hint-btn" class="tool-btn hint-btn">💡 Dica</button>
-          <button id="erase-btn" class="tool-btn erase-btn">✕ Apagar</button>
-          <button id="solve-btn" class="tool-btn solve-btn">🔓 Resolver</button>
+          <span id="mistakes-display" class="mistakes-counter">
+            <span class="mistakes-label">Erros</span>
+            <span id="mistake-pips" class="mistake-pips"></span>
+          </span>
+          <button id="hint-btn" class="tool-btn hint-btn">
+            💡 Dica <span id="hints-left" class="hint-count">3</span>
+          </button>
+          <button id="erase-btn" class="tool-btn erase-btn">✕</button>
         </div>
       </div>
 
@@ -99,17 +91,33 @@
         <button class="num-btn" data-val="8">8</button>
         <button class="num-btn" data-val="9">9</button>
       </div>
-
-      <div id="status-bar"></div>
     </section>
 
     <!-- Victory overlay -->
     <div id="victory-overlay" class="hidden">
-      <div class="victory-card">
-        <div class="trophy">🏆</div>
-        <h2>Parabéns!</h2>
-        <p>Você completou o Sudoku Mega!</p>
+      <div class="end-card victory-card">
+        <div class="end-icon">🏆</div>
+        <h2>Incrível!</h2>
+        <p>Sudoku Mega concluído</p>
+        <div class="end-stats">
+          <div class="stat"><span id="v-time">—</span><small>tempo</small></div>
+          <div class="stat"><span id="v-mistakes">—</span><small>erros</small></div>
+          <div class="stat"><span id="v-hints">—</span><small>dicas</small></div>
+        </div>
         <button id="play-again-btn" class="primary-btn">Jogar Novamente</button>
+      </div>
+    </div>
+
+    <!-- Game over overlay -->
+    <div id="gameover-overlay" class="hidden">
+      <div class="end-card gameover-card">
+        <div class="end-icon">💀</div>
+        <h2>Game Over</h2>
+        <p>3 erros cometidos</p>
+        <div class="end-actions">
+          <button id="reveal-btn" class="secondary-btn">Ver Solução</button>
+          <button id="retry-btn" class="primary-btn">Tentar Novamente</button>
+        </div>
       </div>
     </div>
   </div>
