@@ -141,7 +141,6 @@ class MegaSession:
 
         return {
             "game_index": board_pos,
-            "grid_index": grid_idx,
             "direction": direction,
             "grid": vis_grid,
             "locked": vis_locked,
