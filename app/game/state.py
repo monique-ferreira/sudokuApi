@@ -43,7 +43,8 @@ class MegaSession:
             for i, (puzzle, solution) in enumerate(results)
         ]
 
-        self.drift_rotation = 0
+        # Each board position has an independent view direction that rotates on drift
+        self.board_directions: list[str] = list(DIRECTIONS[:num_games])
         self.mistakes = 0
         self.hints_used = 0
         self.game_over = False
@@ -59,9 +60,8 @@ class MegaSession:
         if board_pos >= self.num_games:
             return {"ok": False, "error": "Invalid game index"}
 
-        grid_idx = (board_pos + self.drift_rotation) % self.num_games
-        grid = self.grids[grid_idx]
-        direction = grid.direction
+        grid = self.grids[board_pos]
+        direction = self.board_directions[board_pos]
         cr, cc = visual_to_canonical(vr, vc, direction)
 
         if grid.locked[cr][cc]:
@@ -107,16 +107,17 @@ class MegaSession:
     # ------------------------------------------------------------------
 
     def apply_drift(self) -> None:
-        self.drift_rotation = (self.drift_rotation + 1) % self.num_games
+        for i in range(self.num_games):
+            current_idx = DIRECTIONS.index(self.board_directions[i])
+            self.board_directions[i] = DIRECTIONS[(current_idx + 1) % 4]
 
     # ------------------------------------------------------------------
     # Views
     # ------------------------------------------------------------------
 
     def _get_view(self, board_pos: int) -> dict:
-        grid_idx = (board_pos + self.drift_rotation) % self.num_games
-        grid = self.grids[grid_idx]
-        direction = grid.direction
+        grid = self.grids[board_pos]
+        direction = self.board_directions[board_pos]
 
         vis_grid = canonical_grid_to_visual(grid.canonical, direction)
         vis_locked = canonical_grid_to_visual(grid.locked, direction)  # type: ignore
@@ -168,9 +169,8 @@ class MegaSession:
         if self.hints_used >= MAX_HINTS or self.game_over:
             return None
 
-        grid_idx = (board_pos + self.drift_rotation) % self.num_games
-        grid = self.grids[grid_idx]
-        direction = grid.direction
+        grid = self.grids[board_pos]
+        direction = self.board_directions[board_pos]
 
         best_cell = None
         best_count = 10
@@ -222,7 +222,7 @@ class MegaSession:
             "completed": self.is_complete(),
             "game_over": self.game_over,
             "paradox": self.paradox,
-            "drift_rotation": self.drift_rotation,
+            "board_directions": self.board_directions,
             "mistakes": self.mistakes,
             "max_mistakes": MAX_MISTAKES,
             "hints_used": self.hints_used,
